@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DNS Orchestrator</title>
+    <link rel="stylesheet" href="/static/app.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+<div class="app"> 
+    <aside class="sidebar" id="sidebar"></aside>
+    <aside class="mobile-tabbar" id="mobile-tabbar"></aside>
+    <button class="sidebar-toggle" id="sidebarToggle">
+        <span id="sidebarToggleIcon"></span>
+    </button>
+    <main class="content">
+        <div id="view"></div>
+    </main>
+</div>
+
+
+<div id="confirm-backdrop" class="confirm-backdrop hidden">
+    <div class="confirm-box">
+        <p id="confirm-message"></p>
+
+        <div class="confirm-actions">
+            <button id="confirm-cancel" class="default">Cancelar</button>
+            <button id="confirm-ok" class="cancel">Eliminar</button>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="/static/app.js"></script>
+</body>
+</html>

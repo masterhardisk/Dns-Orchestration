@@ -1,0 +1,13 @@
+services:
+  dns-orchestration:
+    build:
+      context: .
+      target: runtime
+    container_name: dns-orchestration
+    ports:
+      - "8010:8010"
+    volumes:
+      - dns_data:/data
+    restart: unless-stopped
+volumes:
+  dns_data:
