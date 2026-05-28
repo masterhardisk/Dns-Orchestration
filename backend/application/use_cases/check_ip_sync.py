@@ -8,8 +8,15 @@ from backend.infrastructure.db.store import (
     get_providers
 )
 from backend.infrastructure.providers.factory import build_provider
+from time import time
+import logging
+
+logger = logging.getLogger(__name__)
+COOLDOWN = 300
 
 class CheckIPSyncUseCase:
+    rate_limit_cache = {}
+    
 
     def __init__(self, providers_cache):
         self.providers_cache = providers_cache
@@ -59,7 +66,6 @@ class CheckIPSyncUseCase:
     # -------------------------
     # INTERNAL METHODS
     # -------------------------
-
     def _update_ip_if_changed(self, new_ip: str):
         current = get_current_ip_status()
         old_ip = current["current_ip"] if current else None
@@ -102,6 +108,10 @@ class CheckIPSyncUseCase:
                         ip=ip,
                         status="up_to_date"
                     )
+
+                    record["ip"] = ip
+                    record["status"] = "up_to_date"
+                    self.send_record_event("RECORD_UPDATED", record)
                 continue
 
             try:
@@ -116,6 +126,10 @@ class CheckIPSyncUseCase:
 
                 errors.append(record["domain"])
 
+                record["ip"] = record_id
+                record["status"] = "error"
+                self.send_record_event("RECORD_UPDATED", record)
+
                 emit_event("ERROR", {
                     "scope": "provider",
                     "record_id": record_id,
@@ -125,16 +139,55 @@ class CheckIPSyncUseCase:
 
             if result == "updated":
                 update_record(record_id, record["domain"], ip, "ok")
+                record["ip"] = ip
+                record["status"] = "ok"
+                self.send_record_event("RECORD_UPDATE", record)
                 updated.append(record["domain"])
 
             elif result == "no_change":
                 update_record(record_id, record["domain"], ip, "up_to_date")
-
+                record["ip"] = ip
+                record["status"] = "up_to_date"
+                self.send_record_event("RECORD_UPDATED", record)
             elif result == "rate_limit":
+                now = time()
+                last = self.rate_limit_cache.get(record_id, 0)
+                delta = now - last
+                logger.warning(
+                    "[RATE_LIMIT] detected",
+                    extra={
+                        "record_id": record_id,
+                        "domain": record["domain"],
+                        "last_seen": last,
+                        "now": now,
+                        "delta_seconds": delta,
+                        "cooldown": COOLDOWN,
+                        "blocked": delta < COOLDOWN
+                    }
+                )
+                if delta < COOLDOWN:
+                    logger.info(
+                        "[RATE_LIMIT] suppressed (cooldown active)",
+                        extra={
+                            "record_id": record_id,
+                            "remaining_seconds": COOLDOWN - delta
+                        }
+                    )
+                    update_record(record_id, record["domain"], current_ip, "error")
+                    continue
+                logger.info(
+                    "[RATE_LIMIT] allowed after cooldown",
+                    extra={
+                        "record_id": record_id,
+                        "cooldown_elapsed": delta
+                    }
+                )
+                self.rate_limit_cache[record_id] = now
                 update_record(record_id, record["domain"], current_ip, "error")
-
                 errors.append(record["domain"])
-
+                record["ip"] = current_ip
+                record["status"] = "error"
+                self.send_record_event("RECORD_UPDATED", record)
                 emit_event("ERROR", {
                     "scope": "provider",
                     "record_id": record_id,
@@ -153,3 +206,15 @@ class CheckIPSyncUseCase:
                 })
 
         return updated, errors
+    
+    def send_record_event(self, event_type: str, record: dict):
+        emit_event(
+            event_type,
+            payload={
+                "id": record["id"],
+                "provider_id": record["provider_id"],
+                "domain": record.get("domain"),
+                "ip": record.get("ip"),
+                "status": record.get("status")
+            }
+        )

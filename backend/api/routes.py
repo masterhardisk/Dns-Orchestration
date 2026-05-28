@@ -71,9 +71,7 @@ async def update_record_route(record_id: int, request: Request):
         status=data.get("status"),
         payload=data.get("payload")
     )
-    record = get_record(record_id)
-    print(record)
-    
+    record = get_record(record_id)    
     emit_event(
         "RECORD_UPDATED",
         payload={

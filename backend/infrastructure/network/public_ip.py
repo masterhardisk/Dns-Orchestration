@@ -3,37 +3,28 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+SOURCES = [
+    ("https://api.ipify.org?format=json", "ip"),
+    ("https://ipv4.ipleak.net/json", "query"),
+]
+
 
 def get_public_ip() -> str | None:
-    urls = [
-        "https://api.ipify.org?format=json",
-        "https://ipv4.ipleak.net/json"
-    ]
+    with httpx.Client(timeout=5) as client:
+        for url, field in SOURCES:
+            try:
+                r = client.get(url)
 
-    for url in urls:
-        try:
-            r = httpx.get(url, timeout=5)
+                if r.status_code != 200:
+                    continue
 
-            if r.status_code != 200:
+                data = r.json()
+                ip = data.get(field)
+
+                if ip:
+                    return ip.strip()
+
+            except Exception:
                 continue
-
-            data = r.json()
-
-            ip = data.get("ip")
-
-            if ip:
-                ip = ip.strip()
-                logger.info("Public IP resolved", extra={
-                    "source": url,
-                    "ip": ip
-                })
-                return ip
-
-        except Exception as e:
-            logger.warning("IP resolver failed", extra={
-                "url": url,
-                "error": str(e)
-            })
-            continue
 
     return None
