@@ -38,11 +38,25 @@ jobs:
           python3 - << 'EOF'
           import subprocess
 
-          last = "${{ steps.last_tag.outputs.last }}".replace("v", "")
+          last_tag = "${{ steps.last_tag.outputs.last }}"
 
-          commits = subprocess.check_output(
-              ["git", "log", f"v{last}..HEAD", "--pretty=%s"]
-          ).decode().splitlines()
+          # Normalizar versión
+          last = last_tag.replace("v", "")
+
+          # Obtener commits de forma segura (primer commit incluido)
+          try:
+              commits = subprocess.check_output(
+                  ["git", "log", f"{last_tag}..HEAD", "--pretty=%s"]
+              ).decode().splitlines()
+          except subprocess.CalledProcessError:
+              commits = subprocess.check_output(
+                  ["git", "log", "--pretty=%s"]
+              ).decode().splitlines()
+
+          # Si no hay commits (caso extremo)
+          if not commits:
+              print(f"v{last}")
+              exit(0)
 
           major, minor, patch = map(int, last.split("."))
 
