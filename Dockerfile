@@ -13,6 +13,15 @@ RUN apt-get update && apt-get install -y \
 COPY backend/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
+FROM base AS test
+
+COPY backend/requirements-dev.txt /app/requirements-dev.txt
+RUN pip install --no-cache-dir -r requirements-dev.txt
+
+COPY backend /app/backend
+
+CMD ["pytest"]
+
 FROM base AS runtime
 
 COPY backend /app/backend
@@ -23,11 +32,3 @@ RUN mkdir -p /data
 
 CMD ["python", "-m", "backend.main"]
 
-FROM base AS test
-
-COPY backend/requirements-dev.txt /app/requirements-dev.txt
-RUN pip install --no-cache-dir -r requirements-dev.txt
-
-COPY backend /app/backend
-
-CMD ["pytest"]
