@@ -58,7 +58,7 @@ async def add_record(request: Request):
         }
     )
 
-    sync_event()
+    sync_event.set()
     return {"status": "ok"}
 
 @router.put("/records/{record_id}")
@@ -84,7 +84,7 @@ async def update_record_route(record_id: int, request: Request):
             "status": record["status"] if record else None
         }
     )
-    sync_event()
+    sync_event.set()
     return {"status": "ok"}
 
 @router.delete("/records/{record_id}")
@@ -99,7 +99,7 @@ async def delete_record_route(record_id: int):
             "ip": record.get("ip") if record else None
         }
     )
-    sync_event()
+    sync_event.set()
     return {"status": "deleted"}
 
 @router.get("/providers")
@@ -181,7 +181,7 @@ async def update_telegram_settings(request: Request):
         "chat_id": payload.get("chat_id", "")
     }
     set_setting("telegram", normalized)
-    sync_event()
+    sync_event.set()
     return {"status": "ok"}
 
 @router.get("/system/ip")
