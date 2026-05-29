@@ -16,7 +16,8 @@ from backend.infrastructure.db.store import (
     get_events,
     get_providers,
     create_provider,
-    delete_provider, 
+    delete_provider,
+    update_provider, 
     provider_has_records,
     create_record,
     get_current_ip_status,
@@ -111,6 +112,20 @@ async def add_provider(request: Request):
         type_=data["type"],
         credentials=data["credentials"]
     )
+    sync_event.set()
+    return {"status": "ok"}
+
+@router.put("/providers/{provider_id}")
+async def update_provider_route(provider_id: int, request: Request):
+    data = await request.json()
+    updated = update_provider(
+        provider_id=provider_id,
+        name=data["name"],
+        type_=data["type"],
+        credentials=data["credentials"],
+    )
+    if not updated:
+        raise HTTPException(status_code=404, detail="Provider not found")
     sync_event.set()
     return {"status": "ok"}
 

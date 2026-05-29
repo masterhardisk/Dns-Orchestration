@@ -235,16 +235,12 @@ def delete_record(record_id: int):
 # =====================
 # PROVIDERS
 # =====================
-
 def get_providers():
     conn = _conn()
     c = conn.cursor()
-
     c.execute("SELECT * FROM providers ORDER BY id DESC")
     rows = c.fetchall()
-
     conn.close()
-
     return [
         {
             **dict(r),
@@ -292,6 +288,35 @@ def delete_provider(provider_id: int):
     deleted = c.rowcount > 0
     conn.close()
     return deleted
+
+def update_provider(provider_id: int, name: str = None, type_: str = None, credentials: dict = None):
+    conn = _conn()
+    c = conn.cursor()
+    fields = []
+    values = []
+    if name is not None:
+        fields.append("name = ?")
+        values.append(name)
+    if type_ is not None:
+        fields.append("type = ?")
+        values.append(type_)
+    if credentials is not None:
+        fields.append("credentials = ?")
+        values.append(json.dumps(credentials))
+    if not fields:
+        conn.close()
+        return False
+    values.append(provider_id)
+    query = f"""
+        UPDATE providers
+        SET {", ".join(fields)}
+        WHERE id = ?
+    """
+    c.execute(query, values)
+    conn.commit()
+    updated = c.rowcount > 0
+    conn.close()
+    return updated
 
 # =====================
 # EVENTS

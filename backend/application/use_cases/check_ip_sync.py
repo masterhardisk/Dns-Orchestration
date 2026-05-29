@@ -141,7 +141,7 @@ class CheckIPSyncUseCase:
                 update_record(record_id, record["domain"], ip, "ok")
                 record["ip"] = ip
                 record["status"] = "ok"
-                self.send_record_event("RECORD_UPDATE", record)
+                self.send_record_event("RECORD_UPDATED", record)
                 updated.append(record["domain"])
 
             elif result == "no_change":

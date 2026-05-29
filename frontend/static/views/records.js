@@ -116,14 +116,18 @@ window.__recordsPatch = {
 /* =========================
    UPSERT (CREATE / UPDATE)
 ========================= */
-
 function upsertRecord(record) {
-    if (!record || !record.id) return;
+    if (!record?.id) return;
 
-    const id = String(record.id);
-    const index = recordsState.findIndex(r => String(r.id) === id);
+    const id = String(record.id).trim();
 
-    if (index === -1) {
+    console.log("UPSERT ID:", id);
+    console.log("ROW EXISTS:", !!document.querySelector(`.row[data-id="${id}"]`));
+
+    let row = document.querySelector(`.row[data-id="${id}"]`);
+
+    // SI NO EXISTE EN DOM → render desde cero
+    if (!row) {
         recordsState.unshift(record);
 
         const list = document.querySelector(".list");
@@ -132,23 +136,27 @@ function upsertRecord(record) {
         const wrapper = document.createElement("div");
         wrapper.innerHTML = rowHTML(record);
 
-        const row = wrapper.firstElementChild;
-        list.prepend(row);
+        const newRow = wrapper.firstElementChild;
+        newRow.dataset.id = id;
+
+        list.prepend(newRow);
 
         bindRow(record.id);
         return;
     }
 
-    recordsState[index] = {
-        ...recordsState[index],
-        ...record
-    };
+    // UPDATE STATE
+    const index = recordsState.findIndex(r => String(r.id) === id);
+    if (index !== -1) {
+        recordsState[index] = {
+            ...recordsState[index],
+            ...record
+        };
+    }
 
-    const row = document.querySelector(`.row[data-id="${id}"]`);
-    if (!row) return;
-
+    // UPDATE DOM
     const domainEl = row.querySelector(".col.domain strong");
-    if (record.domain && domainEl) domainEl.textContent = record.domain;
+    if (domainEl && record.domain) domainEl.textContent = record.domain;
 
     const ipEl = row.querySelector(".col.ip");
     if (ipEl && record.ip !== undefined) {
