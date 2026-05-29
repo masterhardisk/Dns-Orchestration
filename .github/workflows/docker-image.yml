@@ -26,13 +26,19 @@ jobs:
       - name: Fetch tags
         run: git fetch --tags
 
+      # =========================
+      # GET LAST TAG
+      # =========================
       - name: Get last tag
         id: last_tag
         shell: bash
         run: |
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           echo "last=$LAST_TAG" >> $GITHUB_OUTPUT
 
+      # =========================
+      # COMPUTE VERSION
+      # =========================
       - name: Compute version
         id: version
         shell: bash
@@ -42,54 +48,76 @@ jobs:
           import os
 
           last_tag = "${{ steps.last_tag.outputs.last }}"
+
+          commits = subprocess.check_output(
+              ["git", "log", "--pretty=%s"]
+          ).decode().splitlines()
+
+          def has_breaking(commits):
+              return any("BREAKING CHANGE" in c or "BREAKING" in c for c in commits)
+
+          def has_feat(commits):
+              return any(c.startswith("feat") for c in commits)
+
+          def has_fix(commits):
+              return any(c.startswith("fix") for c in commits)
+
+          # =========================
+          # BOOTSTRAP (NO TAGS YET)
+          # =========================
+          if not last_tag:
+              if has_breaking(commits):
+                  version = "v1.0.0"
+              elif has_feat(commits):
+                  version = "v0.1.0"
+              elif has_fix(commits):
+                  version = "v0.0.1"
+              else:
+                  version = "v0.1.0"
+
+              print("BOOTSTRAP:", version)
+
+              with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+                  f.write(f"version={version}\n")
+              exit(0)
+
+          # =========================
+          # NORMAL MODE (HAS TAGS)
+          # =========================
           last = last_tag.replace("v", "")
 
-          # Obtener commits desde último tag
-          try:
-              commits = subprocess.check_output(
-                  ["git", "log", f"{last_tag}..HEAD", "--pretty=%s"]
-              ).decode().splitlines()
-          except subprocess.CalledProcessError:
-              commits = []
+          commits = subprocess.check_output(
+              ["git", "log", f"{last_tag}..HEAD", "--pretty=%s"]
+          ).decode().splitlines()
 
           if not commits:
               version = f"v{last}"
-              print(version)
+              print("NO CHANGES:", version)
               with open(os.environ["GITHUB_OUTPUT"], "a") as f:
                   f.write(f"version={version}\n")
               exit(0)
 
           major, minor, patch = map(int, last.split("."))
 
-          bump_major = False
-          bump_minor = False
-          bump_patch = False
-
-          for c in commits:
-              if "BREAKING CHANGE" in c or "BREAKING" in c:
-                  bump_major = True
-                  break
-              elif c.startswith("feat"):
-                  bump_minor = True
-              elif c.startswith("fix"):
-                  bump_patch = True
-
-          if bump_major:
+          if any("BREAKING CHANGE" in c or "BREAKING" in c for c in commits):
               major += 1
               minor = 0
               patch = 0
-          elif bump_minor:
+          elif any(c.startswith("feat") for c in commits):
               minor += 1
-          elif bump_patch:
+          elif any(c.startswith("fix") for c in commits):
               patch += 1
 
           version = f"v{major}.{minor}.{patch}"
-          print("Computed version:", version)
+          print("COMPUTED:", version)
 
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"version={version}\n")
           EOF
 
+      # =========================
+      # CREATE TAG
+      # =========================
       - name: Create and push tag
         shell: bash
         run: |
@@ -98,7 +126,7 @@ jobs:
           echo "Creating tag: $VERSION"
 
           if [ -z "$VERSION" ]; then
-            echo "ERROR: version is empty"
+            echo "ERROR: VERSION is empty"
             exit 1
           fi
 
@@ -113,6 +141,9 @@ jobs:
           git tag "$VERSION"
           git push origin "$VERSION"
 
+      # =========================
+      # DOCKER BUILD
+      # =========================
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
