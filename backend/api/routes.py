@@ -4,7 +4,6 @@ from backend.infrastructure.providers.base import BaseDNSProvider
 from backend.worker.engine import sync_event
 from backend.domain.events.event_bus import subscribe, unsubscribe
 from backend.domain.events.event_service import emit_event
-
 import asyncio
 import json
 
@@ -112,6 +111,7 @@ async def add_provider(request: Request):
         type_=data["type"],
         credentials=data["credentials"]
     )
+    sync_event.set()
     return {"status": "ok"}
 
 @router.delete("/providers/{provider_id}")
@@ -128,6 +128,7 @@ def remove_provider(provider_id: int):
             status_code=404,
             detail="Provider not found"
         )
+    sync_event.set()
     return {"status": "ok"}
 
 @router.get("/providers/types")
@@ -151,7 +152,7 @@ def get_provider_types():
             })
 
         except Exception:
-            print(f"Provider type error: {type_} {e}")
+            print(f"Provider type error: {type_} {Exception}")
             continue
 
     return result
