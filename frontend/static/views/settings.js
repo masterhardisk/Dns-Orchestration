@@ -161,14 +161,10 @@ function bindEvents() {
 
     theme.onchange = () => {
         settingsState.theme = theme.value;
-
         localStorage.setItem("theme", theme.value);
-
         applyTheme(theme.value);
-
         window.__rerenderSidebarLogo?.();
     };
-
     save.onclick = saveSettings;
 }
 
