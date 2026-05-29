@@ -37,7 +37,7 @@ jobs:
           echo "last=$LAST_TAG" >> $GITHUB_OUTPUT
 
       # =========================
-      # COMPUTE VERSION
+      # COMPUTE VERSION (FIXED PRIORITY LOGIC)
       # =========================
       - name: Compute version
         id: version
@@ -49,6 +49,7 @@ jobs:
 
           last_tag = "${{ steps.last_tag.outputs.last }}"
 
+          # Obtener commits
           commits = subprocess.check_output(
               ["git", "log", "--pretty=%s"]
           ).decode().splitlines()
@@ -63,7 +64,7 @@ jobs:
               return any(c.startswith("fix") for c in commits)
 
           # =========================
-          # BOOTSTRAP (NO TAGS YET)
+          # BOOTSTRAP (SIN TAGS)
           # =========================
           if not last_tag:
               if has_breaking(commits):
@@ -75,14 +76,13 @@ jobs:
               else:
                   version = "v0.1.0"
 
-              print("BOOTSTRAP:", version)
-
               with open(os.environ["GITHUB_OUTPUT"], "a") as f:
                   f.write(f"version={version}\n")
+              print("BOOTSTRAP:", version)
               exit(0)
 
           # =========================
-          # NORMAL MODE (HAS TAGS)
+          # NORMAL MODE
           # =========================
           last = last_tag.replace("v", "")
 
@@ -92,27 +92,33 @@ jobs:
 
           if not commits:
               version = f"v{last}"
-              print("NO CHANGES:", version)
               with open(os.environ["GITHUB_OUTPUT"], "a") as f:
                   f.write(f"version={version}\n")
+              print("NO CHANGES:", version)
               exit(0)
 
           major, minor, patch = map(int, last.split("."))
 
-          if any("BREAKING CHANGE" in c or "BREAKING" in c for c in commits):
+          # =========================
+          # 🔥 PRIORIDAD CORRECTA (BREAKING ABSOLUTO)
+          # =========================
+          if has_breaking(commits):
               major += 1
               minor = 0
               patch = 0
-          elif any(c.startswith("feat") for c in commits):
+
+          elif has_feat(commits):
               minor += 1
-          elif any(c.startswith("fix") for c in commits):
+
+          elif has_fix(commits):
               patch += 1
 
           version = f"v{major}.{minor}.{patch}"
-          print("COMPUTED:", version)
 
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"version={version}\n")
+
+          print("COMPUTED:", version)
           EOF
 
       # =========================
