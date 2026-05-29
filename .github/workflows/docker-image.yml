@@ -28,15 +28,18 @@ jobs:
 
       - name: Get last tag
         id: last_tag
+        shell: bash
         run: |
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
           echo "last=$LAST_TAG" >> $GITHUB_OUTPUT
 
       - name: Compute version
         id: version
+        shell: bash
         run: |
           python3 - << 'EOF'
           import subprocess
+          import os
 
           last_tag = "${{ steps.last_tag.outputs.last }}"
           last = last_tag.replace("v", "")
@@ -47,51 +50,63 @@ jobs:
                   ["git", "log", f"{last_tag}..HEAD", "--pretty=%s"]
               ).decode().splitlines()
           except subprocess.CalledProcessError:
-              commits = subprocess.check_output(
-                  ["git", "log", "--pretty=%s"]
-              ).decode().splitlines()
+              commits = []
 
-          # fallback
           if not commits:
               version = f"v{last}"
               print(version)
-              with open("${GITHUB_OUTPUT}", "a") as f:
+              with open(os.environ["GITHUB_OUTPUT"], "a") as f:
                   f.write(f"version={version}\n")
               exit(0)
 
           major, minor, patch = map(int, last.split("."))
 
+          bump_major = False
+          bump_minor = False
+          bump_patch = False
+
           for c in commits:
               if "BREAKING CHANGE" in c or "BREAKING" in c:
-                  major += 1
-                  minor = 0
-                  patch = 0
+                  bump_major = True
                   break
               elif c.startswith("feat"):
-                  minor += 1
+                  bump_minor = True
               elif c.startswith("fix"):
-                  patch += 1
+                  bump_patch = True
+
+          if bump_major:
+              major += 1
+              minor = 0
+              patch = 0
+          elif bump_minor:
+              minor += 1
+          elif bump_patch:
+              patch += 1
 
           version = f"v{major}.{minor}.{patch}"
+          print("Computed version:", version)
 
-          print(f"Computed version: {version}")
-
-          with open("${GITHUB_OUTPUT}", "a") as f:
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"version={version}\n")
           EOF
 
       - name: Create and push tag
+        shell: bash
         run: |
-          VERSION=${{ steps.version.outputs.version }}
+          VERSION="${{ steps.version.outputs.version }}"
 
           echo "Creating tag: $VERSION"
+
+          if [ -z "$VERSION" ]; then
+            echo "ERROR: version is empty"
+            exit 1
+          fi
 
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          # evitar duplicados
           if git rev-parse "$VERSION" >/dev/null 2>&1; then
-            echo "Tag already exists, skipping"
+            echo "Tag already exists: $VERSION"
             exit 0
           fi
 
