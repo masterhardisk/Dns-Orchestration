@@ -37,7 +37,7 @@ jobs:
           echo "last=$LAST_TAG" >> $GITHUB_OUTPUT
 
       # =========================
-      # COMPUTE VERSION (FIXED PRIORITY LOGIC)
+      # COMPUTE VERSION (FIXED)
       # =========================
       - name: Compute version
         id: version
@@ -49,13 +49,16 @@ jobs:
 
           last_tag = "${{ steps.last_tag.outputs.last }}"
 
-          # Obtener commits
           commits = subprocess.check_output(
               ["git", "log", "--pretty=%s"]
           ).decode().splitlines()
 
           def has_breaking(commits):
-              return any("BREAKING CHANGE" in c or "BREAKING" in c for c in commits)
+              return any(
+                  c.startswith(("feat!", "fix!", "chore!", "refactor!", "perf!"))
+                  or "BREAKING CHANGE" in c
+                  for c in commits
+              )
 
           def has_feat(commits):
               return any(c.startswith("feat") for c in commits)
@@ -64,7 +67,7 @@ jobs:
               return any(c.startswith("fix") for c in commits)
 
           # =========================
-          # BOOTSTRAP (SIN TAGS)
+          # BOOTSTRAP
           # =========================
           if not last_tag:
               if has_breaking(commits):
@@ -78,6 +81,7 @@ jobs:
 
               with open(os.environ["GITHUB_OUTPUT"], "a") as f:
                   f.write(f"version={version}\n")
+
               print("BOOTSTRAP:", version)
               exit(0)
 
@@ -92,15 +96,17 @@ jobs:
 
           if not commits:
               version = f"v{last}"
+
               with open(os.environ["GITHUB_OUTPUT"], "a") as f:
                   f.write(f"version={version}\n")
+
               print("NO CHANGES:", version)
               exit(0)
 
           major, minor, patch = map(int, last.split("."))
 
           # =========================
-          # 🔥 PRIORIDAD CORRECTA (BREAKING ABSOLUTO)
+          # SEMVER FIX
           # =========================
           if has_breaking(commits):
               major += 1
@@ -109,6 +115,7 @@ jobs:
 
           elif has_feat(commits):
               minor += 1
+              patch = 0
 
           elif has_fix(commits):
               patch += 1
