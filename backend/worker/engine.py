@@ -2,14 +2,13 @@ from backend.application.use_cases.check_ip_sync import CheckIPSyncUseCase
 from backend.infrastructure.db.bootstrap import bootstrap_settings
 from backend.infrastructure.db.store import init_db, get_providers
 from backend.domain.events.event_service import emit_event
+from backend.infrastructure.db.store import get_setting
 import threading
 import logging
 import threading
 import logging
 
 logger = logging.getLogger(__name__)
-
-CHECK_INTERVAL = 60
 sync_event = threading.Event()
 
 
@@ -31,7 +30,12 @@ def start_worker():
     use_case.execute()
 
     while True:
-        sync_event.wait(timeout=CHECK_INTERVAL)
+        settings = get_setting("worker") or {}
+        interval = settings.get("interval", 300)
+        logger.info(f"[WORKER] get settings = {settings}")
+        logger.info(f"[WORKER] waiting cycle interval={interval}")
+
+        sync_event.wait(timeout=interval)
         sync_event.clear()
 
         providers_cache = getProviders()

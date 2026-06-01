@@ -4,6 +4,8 @@ from backend.infrastructure.providers.base import BaseDNSProvider
 from backend.worker.engine import sync_event
 from backend.domain.events.event_bus import subscribe, unsubscribe
 from backend.domain.events.event_service import emit_event
+from backend.application.constants.public_ip import IP_PROVIDERS
+from backend.application.constants.worker import ALLOWED_INTERVALS
 import asyncio
 import json
 
@@ -196,6 +198,65 @@ async def update_telegram_settings(request: Request):
     }
     set_setting("telegram", normalized)
     sync_event.set()
+    return {"status": "ok"}
+
+@router.get("/settings/public-ip/providers")
+def get_public_ip_providers():
+    return list(IP_PROVIDERS.keys())
+
+@router.get("/settings/public-ip")
+def get_public_ip_settings():
+    data = get_setting("public_ip")
+
+    return data or {
+        "provider": "ipify"
+    }
+
+@router.post("/settings/public-ip")
+async def update_public_ip_settings(request: Request):
+    payload = await request.json()
+
+    provider = payload.get("provider", "ipify")
+
+    # validación contra catálogo real
+    if provider not in IP_PROVIDERS:
+        provider = "auto"
+
+    set_setting("public_ip", {
+        "provider": provider
+    })
+
+    sync_event.set()
+
+    return {"status": "ok"}
+
+@router.get("/settings/worker/intervals")
+def get_worker_intervals():
+    return ALLOWED_INTERVALS
+
+@router.get("/settings/worker")
+def get_worker_settings():
+    data = get_setting("worker")
+
+    return data or {
+        "interval": 300
+    }
+
+@router.post("/settings/worker")
+async def update_worker_settings(request: Request):
+    payload = await request.json()
+
+    interval = int(payload.get("interval", 300))
+
+    if interval not in ALLOWED_INTERVALS:
+        interval = 300
+
+    set_setting("worker", {
+        "interval": interval
+    })
+
+    sync_event.set()
+
     return {"status": "ok"}
 
 @router.get("/system/ip")

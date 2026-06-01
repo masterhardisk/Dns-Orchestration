@@ -138,7 +138,6 @@ function highlightActiveTabbar() {
    EVENT HANDLER (REALTIME UI)
 ========================= */
 function handleEvent(event) {
-
     console.log("event", event)
     switch (event.type) {
         // -------------------------
@@ -180,6 +179,35 @@ function handleEvent(event) {
     }
 }
 
+export function formatInterval(sec) {
+
+    let key;
+
+    if (sec < 60) {
+        key = sec === 1 ? "sec_one" : "sec_other";
+        return `${sec} ${t(key)}`;
+    }
+
+    if (sec % 3600 === 0) {
+        const value = sec / 3600;
+        key = value === 1 ? "hour_one" : "hour_other";
+        return `${value} ${t(key)}`;
+    }
+
+    const value = sec / 60;
+    key = value === 1 ? "min_one" : "min_other";
+
+    return `${value} ${t(key)}`;
+}
+
+export function formatProvider(p) {
+    switch (p) {
+        case "auto": return "Automatic";
+        case "ipify": return "IPify";
+        case "ipleak": return "IPLeak";
+        default: return p;
+    }
+}
 /* =========================
    ROUTER
 ========================= */

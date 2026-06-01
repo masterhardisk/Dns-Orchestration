@@ -37,6 +37,21 @@ export const translations = {
         dark_mode: "Dark mode",
         language: "Language",
         theme: "Theme",
+        
+        network: "Network",
+        public_ip_provider: "Public IP provider",
+        worker_interval: "Worker interval",
+
+        public_ip_provider_desc: "Used by the worker to resolve your public IP address",
+        worker_interval_desc: "How often the worker runs IP sync checks",
+
+        min_one: "Minute",
+        min_other: "Minutes",
+        sec_one: "Second",
+        sec_other: "Seconds",
+        hour_one: "Hour",
+        hour_other: "Hours",
+
         enable_telegram: "Enable Telegram",
         telegram_bot_token: "Telegram bot token",
         telegram_chat_id: "Telegram chat ID",
@@ -101,6 +116,20 @@ export const translations = {
         dark_mode: "Modo oscuro",
         language: "Lenguaje",
         theme: "Tema",
+        network: "Red",
+
+        public_ip_provider: "Proveedor de IP pública",
+        worker_interval: "Intervalo del worker",
+        public_ip_provider_desc: "Usado por el worker para resolver tu IP pública",
+        worker_interval_desc: "Frecuencia con la que el worker ejecuta la sincronización de IP",
+
+        min_one: "Minuto",
+        min_other: "Minutos",
+        sec_one: "Segundo",
+        sec_other: "Segundos",
+        hour_one: "Hora",
+        hour_other: "Horas",
+
         enable_telegram: "Activar Telegram",
         telegram_bot_token: "Token del bot de Telegram",
         telegram_chat_id: "ID del chat de Telegram",
