@@ -93,6 +93,14 @@ body {
 /* MOBILE DEFAULT COLLAPSED */
 @media (max-width: 900px) {
 
+    .content {
+        margin-left: 0px !important;
+    }
+
+    .app-footer {
+        margin-left: 0px !important;
+    }
+
     .sidebar {
         display: none;
     }
@@ -107,7 +115,7 @@ body {
 
     .mobile-tabbar {
         position: fixed;
-        bottom: 16px;
+        bottom: 20px;
         left: 12px;
         right: 12px;
         height: 64px;
@@ -574,7 +582,7 @@ button.cancel:hover {
 @media (max-width: 900px) {
     .fab {
         right: 16px;
-        bottom: calc(16px + 64px + 12px + env(safe-area-inset-bottom));
+        bottom: calc(20px + 64px + 12px + env(safe-area-inset-bottom));
     }
 }
 
@@ -812,7 +820,7 @@ FOOTER
 .app-footer {
     margin-top: auto;
     margin-left: -65px;
-    padding-top: 15px;
+    padding: 15px;
     text-align: center;
     font-size: 0.85rem;
     opacity: 0.7;
